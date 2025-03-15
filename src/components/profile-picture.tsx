@@ -3,13 +3,13 @@ import type { ApiMedia } from "~/api/types/media";
 
 const ProfilePicture: Component<{
   media: ApiMedia | null | undefined
-  fullName?: string | undefined
+  fullName?: string
   username: string
   size: number
   textSize?: number
 }> = (props) => {
   const [isUnavailable, setUnavailable] = createSignal(false);
-  const name = () => props.fullName || props.username;
+  const name = () => props.fullName ?? props.username;
 
   const style = () => ({
     width: `${props.size}px`,
