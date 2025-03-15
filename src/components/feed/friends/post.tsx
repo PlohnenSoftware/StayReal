@@ -110,9 +110,15 @@ const FeedFriendsPost: Component<{
     }, 350);
   };
 
+  // Check if we're in a parent component's selection mode
+  const isInSelectionMode = () => {
+    // Find the closest parent with the data-selection-mode attribute
+    const parent = document.querySelector('[data-selection-mode="true"]');
+    return !!parent;
+  };
+
   createEffect(on(useImage, (image) => {
     if (!image) return;
-
 
     let scale = 1;
     let transformX = 0;
@@ -122,6 +128,9 @@ const FeedFriendsPost: Component<{
 
     const gesture = new Gesture(image, {
       onDrag: ({ delta: [dx, dy], pinching }) => {
+        // Skip drag handling in selection mode
+        if (isInSelectionMode()) return;
+        
         if (!pinching) return;
 
         transformX += dx;
@@ -129,6 +138,9 @@ const FeedFriendsPost: Component<{
         update();
       },
       onPinch: ({ first, origin: [ox, oy], movement: [ms], offset: [s], memo }) => {
+        // Skip pinch handling in selection mode
+        if (isInSelectionMode()) return;
+        
         if (first) {
           const { width, height, x: boundX, y: boundY } = image.getBoundingClientRect();
           const tx = ox - (boundX + width / 2)
@@ -146,6 +158,9 @@ const FeedFriendsPost: Component<{
         return memo;
       },
       onPinchEnd: () => {
+        // Skip pinch end handling in selection mode
+        if (isInSelectionMode()) return;
+        
         scale = 1;
         transformY = 0;
         transformX = 0;
@@ -184,7 +199,7 @@ const FeedFriendsPost: Component<{
   );
 
   return (
-    <div class="z-20 relative mx-auto w-fit">
+    <div class="z-20 relative mx-auto w-fit overflow-hidden">
       <img
         class="z-30 h-40 w-auto absolute top-4 right-4 rounded-xl inline-block border border-white/25 shadow-xl transition-opacity"
         onClick={() => setIsReversed(prev => !prev)}
@@ -199,7 +214,11 @@ const FeedFriendsPost: Component<{
         class="max-h-80vh"
         alt="Primary image"
         src={primaryURL()}
-        onPointerDown={handleFocus}
+        onPointerDown={(e) => {
+          // Skip focus handling in selection mode
+          if (isInSelectionMode()) return;
+          handleFocus(e);
+        }}
       />
 
       <Show when={props.post.postType === "bts"}>
@@ -241,7 +260,7 @@ const FeedFriendsPost: Component<{
       <div class="w-fit">
         <div class="absolute z-30 bottom-2 right-4 transition-opacity"
           classList={{
-            "opacity-0 pointer-events-none": isFocusing() || isReacting()
+            "opacity-0 pointer-events-none": isFocusing() || isReacting() || isInSelectionMode()
           }}
         >
           <button type="button"

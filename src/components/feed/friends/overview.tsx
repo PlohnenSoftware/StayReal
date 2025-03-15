@@ -20,9 +20,14 @@ import { postModerationBlockUsers } from "~/api/requests/moderation/block-users"
 import MdiLaunch from '~icons/mdi/launch'
 import MdiChevronRight from '~icons/mdi/chevron-right'
 import { postModerationReportsPost, PostReportReason, REPORT_REASONS } from "~/api/requests/moderation/reports/post";
+import MdiCheckboxMarkedCircle from '~icons/mdi/checkbox-marked-circle';
+import MdiCheckboxBlankCircleOutline from '~icons/mdi/checkbox-blank-circle-outline';
 
 const FeedFriendsOverview: Component<{
-  overview: PostsOverview
+  overview: PostsOverview;
+  isSelectionMode?: boolean;
+  isSelected?: boolean;
+  onSelectPost?: (userId: string, postId: string) => void;
 }> = (props) => {
   const post = () => props.overview.posts[0];
   const postDate = () => new Date(post().postedAt);
@@ -69,6 +74,13 @@ const FeedFriendsOverview: Component<{
       });
     }
   }
+
+  // Handle post selection for batch download
+  const toggleSelection = () => {
+    if (props.onSelectPost) {
+      props.onSelectPost(props.overview.user.id, post().id);
+    }
+  };
 
   return (
     <>
@@ -236,7 +248,21 @@ const FeedFriendsOverview: Component<{
         )}
       </Drawer>
 
-      <div>
+      <div class="relative">
+        {/* Selection Mode Checkbox */}
+        <Show when={props.isSelectionMode}>
+          <button 
+            type="button" 
+            onClick={toggleSelection} 
+            class="absolute top-2 left-2 z-40 bg-black/50 rounded-full p-1"
+          >
+            {props.isSelected ? 
+              <MdiCheckboxMarkedCircle class="text-2xl text-white" /> : 
+              <MdiCheckboxBlankCircleOutline class="text-2xl text-white/70" />
+            }
+          </button>
+        </Show>
+
         <div class="flex items-center gap-3 px-4 py-2.5 rounded-t-2xl">
           <ProfilePicture
             username={props.overview.user.username}
@@ -250,56 +276,47 @@ const FeedFriendsOverview: Component<{
               <p class="font-600 w-fit">
                 {props.overview.user.username}
               </p>
-              <Show when={post().origin === "repost"}>
-                <p class="w-fit text-white/80 flex items-center gap-1 bg-white/20 pl-2 pr-2.5 rounded-full text-xs">
-                  <MdiRepost />{post().parentPostUsername}
-                </p>
-              </Show>
+              <p class="text-white/75 whitespace-nowrap ml-auto">
+                {postDate().toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </p>
             </div>
 
-            <div class="flex items-center gap-2 text-sm text-white/50">
-              <div class="flex items-center gap-1 shrink-0">
-                <MingcuteTimeFill />
-                <p>{postDate().toLocaleTimeString(void 0, {
-                  hour: "2-digit",
-                  minute: "2-digit"
-                })}</p>
-              </div>
-
+            <div class="flex gap-2 items-center text-white/50">
               <Show when={post().location}>
-                {location => (
-                  <button type="button"
-                    onClick={() => open(`https://maps.google.com/?q=${location().latitude},${location().longitude}`)}
-                    class="flex items-center gap-1 overflow-hidden"
-                  >
-                    <MingcuteLocationFill class="shrink-0" />
-                    <p class="truncate">
-                      <Location
-                        latitude={location().latitude}
-                        longitude={location().longitude}
-                      />
-                    </p>
-                  </button>
-                )}
+                <MingcuteLocationFill class="text-sm" />
+                {post().location &&
+                  <Location
+                    latitude={post().location.latitude}
+                    longitude={post().location.longitude}
+                  />
+                }
+              </Show>
+
+              <Show when={post().lateInSeconds > 0}>
+                <MingcuteTimeFill class="text-sm" />
+                <p class="text-sm w-fit">
+                  {lateDuration()} late
+                </p>
               </Show>
             </div>
           </div>
 
-          <button type="button"
-            onClick={() => setActionsDrawerOpen(true)}
-            class="ml-auto opacity-50"
-          >
-            <MingcuteMore4Fill class="text-xl" />
-          </button>
+          <Show when={!props.isSelectionMode}>
+            <button
+              type="button"
+              class="ml-auto"
+              onClick={() => setActionsDrawerOpen(true)}
+            >
+              <MingcuteMore4Fill />
+            </button>
+          </Show>
         </div>
 
-        <div class="relative overflow-hidden">
-          <FeedFriendsPost
-            post={props.overview.posts[0]}
-            postUserId={props.overview.user.id}
-          />
-        </div>
-
+        <FeedFriendsPost post={post()} postUserId={props.overview.user.id} />
+        
         <div class="px-6 pt-4 mb-2">
           <p class="text-left">
             {post().caption}
