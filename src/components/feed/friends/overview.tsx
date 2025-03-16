@@ -26,8 +26,9 @@ import MdiCheckboxBlankCircleOutline from '~icons/mdi/checkbox-blank-circle-outl
 const FeedFriendsOverview: Component<{
   overview: PostsOverview;
   isSelectionMode?: boolean;
-  isSelected?: boolean;
-  onSelectPost?: (userId: string, postId: string) => void;
+  isPrimarySelected?: boolean;
+  isSecondarySelected?: boolean;
+  onSelectPhoto?: (photoType: 'primary' | 'secondary') => void;
 }> = (props) => {
   const post = () => props.overview.posts[0];
   const postDate = () => new Date(post().postedAt);
@@ -50,10 +51,16 @@ const FeedFriendsOverview: Component<{
     await feed.refetch();
   };
 
-  // Handle post selection for batch download
-  const toggleSelection = () => {
-    if (props.onSelectPost) {
-      props.onSelectPost(props.overview.user.id, post().id);
+  // Handle photo selection
+  const selectPrimaryPhoto = () => {
+    if (props.onSelectPhoto) {
+      props.onSelectPhoto('primary');
+    }
+  };
+
+  const selectSecondaryPhoto = () => {
+    if (props.onSelectPhoto) {
+      props.onSelectPhoto('secondary');
     }
   };
 
@@ -107,7 +114,7 @@ const FeedFriendsOverview: Component<{
               <div class="flex flex-col gap-2 mt-6">
                 <div class="flex gap-2 mb-4">
                   <button type="button" class="w-full h-16 relative rounded-lg transition-opacity active:opacity-50"
-                    onClick={() => open(post().primary.url)}
+                    onClick={selectPrimaryPhoto}
                     style={{
                       background: `url(${post().primary.url}) center center / cover no-repeat`
                     }}
@@ -117,7 +124,7 @@ const FeedFriendsOverview: Component<{
                     </div>
                   </button>
                   <button type="button" class="w-full h-16 relative rounded-lg transition-opacity active:opacity-50"
-                    onClick={() => open(post().secondary.url)}
+                    onClick={selectSecondaryPhoto}
                     style={{
                       background: `url(${post().secondary.url}) center center / cover no-repeat`
                     }}
@@ -305,8 +312,10 @@ const FeedFriendsOverview: Component<{
           post={post()} 
           postUserId={props.overview.user.id} 
           isSelectionMode={props.isSelectionMode}
-          isSelected={props.isSelected}
-          onSelect={toggleSelection}
+          isPrimarySelected={props.isPrimarySelected}
+          isSecondarySelected={props.isSecondarySelected}
+          onSelectPrimary={selectPrimaryPhoto}
+          onSelectSecondary={selectSecondaryPhoto}
         />
         
         <div class="px-6 pt-4 mb-2">

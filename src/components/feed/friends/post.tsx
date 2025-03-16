@@ -26,14 +26,24 @@ const FeedFriendsPost: Component<{
   isSelectionMode?: boolean
 
   /**
-   * Whether the post is selected
+   * Whether the primary photo is selected
    */
-  isSelected?: boolean
+  isPrimarySelected?: boolean
 
   /**
-   * Callback when the post is selected
+   * Whether the secondary photo is selected
    */
-  onSelect?: () => void
+  isSecondarySelected?: boolean
+
+  /**
+   * Callback when primary photo is selected
+   */
+  onSelectPrimary?: () => void
+
+  /**
+   * Callback when secondary photo is selected
+   */
+  onSelectSecondary?: () => void
 }> = (props) => {
   const [useVideo, setVideo] = createSignal<HTMLVideoElement>();
   const [useImage, setImage] = createSignal<HTMLImageElement>();
@@ -111,11 +121,8 @@ const FeedFriendsPost: Component<{
    * when clicking on it.
    */
   const handleFocus = (event: PointerEvent): void => {
-    // If we're in selection mode, clicking should select instead of focus
+    // If we're in selection mode, don't handle focus (selection is handled separately)
     if (props.isSelectionMode) {
-      if (props.onSelect) {
-        props.onSelect();
-      }
       return;
     }
     
@@ -214,14 +221,29 @@ const FeedFriendsPost: Component<{
 
   return (
     <div class="z-20 relative mx-auto w-fit overflow-hidden">
-      {/* Selection Mode Checkbox */}
+      {/* Selection Mode Checkboxes */}
       <Show when={props.isSelectionMode}>
+        {/* Primary photo selector */}
         <button 
           type="button" 
-          onClick={() => props.onSelect && props.onSelect()} 
-          class="absolute top-2 left-2 z-40 bg-black/50 rounded-full p-1"
+          onClick={() => props.onSelectPrimary && props.onSelectPrimary()} 
+          class="absolute top-2 left-2 z-40 bg-black/50 rounded-full p-1 flex items-center gap-1"
         >
-          {props.isSelected ? 
+          {props.isPrimarySelected ? 
+            <MdiCheckboxMarkedCircle class="text-2xl text-white" /> : 
+            <MdiCheckboxBlankCircleOutline class="text-2xl text-white/70" />
+          }
+          <span class="h-3 w-3 rounded-full bg-green-500"></span>
+        </button>
+        
+        {/* Secondary photo selector */}
+        <button 
+          type="button" 
+          onClick={() => props.onSelectSecondary && props.onSelectSecondary()} 
+          class="absolute top-2 right-2 z-40 bg-black/50 rounded-full p-1 flex items-center gap-1"
+        >
+          <span class="h-3 w-3 rounded-full bg-red-500"></span>
+          {props.isSecondarySelected ? 
             <MdiCheckboxMarkedCircle class="text-2xl text-white" /> : 
             <MdiCheckboxBlankCircleOutline class="text-2xl text-white/70" />
           }

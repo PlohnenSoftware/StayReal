@@ -12,7 +12,8 @@ export interface PostSelectionItem {
     username: string;
   };
   post: Post;
-  selected: boolean;
+  primarySelected: boolean;
+  secondarySelected: boolean;
 }
 
 /**
@@ -26,7 +27,14 @@ const BatchDownload: Component<{
   const [isCopying, setIsCopying] = createSignal(false);
   const [progress, setProgress] = createSignal<{ current: number; total: number } | null>(null);
 
-  const selectedPosts = () => props.posts().filter(item => item.selected);
+  const selectedPosts = () => props.posts().filter(item => item.primarySelected || item.secondarySelected);
+  const totalSelectedPhotos = () => {
+    return props.posts().reduce((count, item) => {
+      if (item.primarySelected) count++;
+      if (item.secondarySelected) count++;
+      return count;
+    }, 0);
+  };
   
   const handleDownload = async () => {
     const selected = selectedPosts();
@@ -37,23 +45,30 @@ const BatchDownload: Component<{
     }
 
     setIsDownloading(true);
-    setProgress({ current: 0, total: selected.length * 2 }); // Each post has two photos
+    setProgress({ current: 0, total: totalSelectedPhotos() });
 
     try {
       const files = selected.flatMap(item => {
         const timestamp = new Date(item.post.postedAt).toISOString().replace(/[:.]/g, '-');
         const username = item.user.username;
         
-        return [
-          {
+        const selectedFiles = [];
+        
+        if (item.primarySelected) {
+          selectedFiles.push({
             url: item.post.primary.url,
             filename: `${username}_${timestamp}_primary.jpg`
-          },
-          {
+          });
+        }
+        
+        if (item.secondarySelected) {
+          selectedFiles.push({
             url: item.post.secondary.url,
             filename: `${username}_${timestamp}_secondary.jpg`
-          }
-        ];
+          });
+        }
+        
+        return selectedFiles;
       });
 
       await batchDownload(files, (current, total) => {
@@ -81,10 +96,19 @@ const BatchDownload: Component<{
     setIsCopying(true);
 
     try {
-      const urls = selected.flatMap(item => [
-        item.post.primary.url,
-        item.post.secondary.url
-      ]);
+      const urls = selected.flatMap(item => {
+        const selectedUrls = [];
+        
+        if (item.primarySelected) {
+          selectedUrls.push(item.post.primary.url);
+        }
+        
+        if (item.secondarySelected) {
+          selectedUrls.push(item.post.secondary.url);
+        }
+        
+        return selectedUrls;
+      });
 
       await copyLinksToClipboard(urls);
       toast.success(`Copied ${urls.length} URLs to clipboard`);
@@ -115,7 +139,7 @@ const BatchDownload: Component<{
         <div class="mb-3">
           <p class="text-white/75">
             Selected: <strong>{selectedPosts().length}</strong> posts 
-            (<strong>{selectedPosts().length * 2}</strong> photos)
+            (<strong>{totalSelectedPhotos()}</strong> photos)
           </p>
         </div>
         
@@ -125,6 +149,8 @@ const BatchDownload: Component<{
               {item => (
                 <div class="text-sm text-white/75 mb-1">
                   {item.user.username}'s post ({new Date(item.post.postedAt).toLocaleDateString()})
+                  {item.primarySelected && <span class="inline-block w-2 h-2 ml-1 rounded-full bg-green-500"></span>}
+                  {item.secondarySelected && <span class="inline-block w-2 h-2 ml-1 rounded-full bg-red-500"></span>}
                 </div>
               )}
             </For>
@@ -147,7 +173,7 @@ const BatchDownload: Component<{
         
         <button
           type="button"
-          disabled={isDownloading() || selectedPosts().length === 0}
+          disabled={isDownloading() || totalSelectedPhotos() === 0}
           onClick={handleDownload}
           class="w-full rounded-lg bg-white/10 hover:bg-white/15 active:opacity-75 px-4 py-3 text-white font-medium transition-all duration-100 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
@@ -157,9 +183,9 @@ const BatchDownload: Component<{
 
         <button
           type="button"
-          disabled={isCopying() || selectedPosts().length === 0}
+          disabled={isCopying() || totalSelectedPhotos() === 0}
           onClick={handleCopyLinks}
-          class="w-full rounded-lg bg-white/10 hover:bg-white/15 active:opacity-75 px-4 py-3 text-white font-medium transition-all duration-100 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          class="w-full rounded-lg bg-white/10 hover:bg-white/15 active:opacity-75 px-4 py-3 text-white font-medium transition-all duration-100 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed mt-2"
         >
           <MdiContentCopy />
           <span>{isCopying() ? 'Copying...' : 'Copy Selected Links'}</span>

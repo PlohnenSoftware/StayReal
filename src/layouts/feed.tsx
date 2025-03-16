@@ -61,7 +61,8 @@ const FeedLayout: FlowComponent = (props) => {
             username: overview.user.username
           },
           post,
-          selected: false
+          primarySelected: false,
+          secondarySelected: false
         }));
       });
       setSelectedPosts(items);
@@ -72,14 +73,19 @@ const FeedLayout: FlowComponent = (props) => {
 
   // Handle post selection from child components
   const handlePostSelection = (event: CustomEvent) => {
-    const { userId, postId } = event.detail;
+    const { userId, postId, photoType } = event.detail;
     
     setSelectedPosts(prev =>
-      prev.map(item =>
-        item.user.id === userId && item.post.id === postId
-          ? { ...item, selected: !item.selected }
-          : item
-      )
+      prev.map(item => {
+        if (item.user.id === userId && item.post.id === postId) {
+          if (photoType === 'primary') {
+            return { ...item, primarySelected: !item.primarySelected };
+          } else if (photoType === 'secondary') {
+            return { ...item, secondarySelected: !item.secondarySelected };
+          }
+        }
+        return item;
+      })
     );
   };
 
@@ -142,20 +148,23 @@ const FeedLayout: FlowComponent = (props) => {
         </nav>
       </header>
 
-      {/* Batch Download Component */}
-      {isSelectionMode() && (
-        <BatchDownload
-          posts={selectedPosts}
-          onClose={() => setIsSelectionMode(false)}
-        />
-      )}
+      {/* Set a data attribute for child components to detect selection mode */}
+      <div data-selection-mode={isSelectionMode() ? "true" : "false"}>
+        {/* Batch Download Component */}
+        {isSelectionMode() && (
+          <BatchDownload
+            posts={selectedPosts}
+            onClose={() => setIsSelectionMode(false)}
+          />
+        )}
 
-      <div class="pt-4 pb-32 mb-[env(safe-area-inset-bottom)]">
-        <PullableScreen onRefresh={handleRefresh}>
-          <main>
-            {props.children}
-          </main>
-        </PullableScreen>
+        <div class="pt-4 pb-32 mb-[env(safe-area-inset-bottom)]">
+          <PullableScreen onRefresh={handleRefresh}>
+            <main>
+              {props.children}
+            </main>
+          </PullableScreen>
+        </div>
       </div>
 
       <BottomNavigation />

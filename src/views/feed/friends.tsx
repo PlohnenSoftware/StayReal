@@ -11,33 +11,36 @@ const FeedFriendsView: Component = () => {
 
   // Check if we're in a parent component's selection mode
   const isInSelectionMode = () => {
-    // We can check if BatchDownload is currently open by looking for its container
-    return !!document.querySelector('.batch-download-container');
+    // Look for the data-selection-mode attribute on parent elements
+    return document.querySelector('[data-selection-mode="true"]') !== null;
   };
 
-  // Check if a post is selected
-  const isPostSelected = (userId: string, postId: string) => {
+  // Check if a photo is selected
+  const isPhotoSelected = (userId: string, postId: string, photoType: 'primary' | 'secondary') => {
     // Find in the global selected posts
     const selectedPostsElement = document.querySelector('.batch-download-container [data-selected-posts]');
     if (!selectedPostsElement) return false;
     
     try {
       const selectedPosts = JSON.parse(selectedPostsElement.getAttribute('data-selected-posts') || '[]') as PostSelectionItem[];
-      return selectedPosts.some(item => 
+      const post = selectedPosts.find(item => 
         item.user.id === userId && 
-        item.post.id === postId && 
-        item.selected
+        item.post.id === postId
       );
+      
+      if (!post) return false;
+      
+      return photoType === 'primary' ? post.primarySelected : post.secondarySelected;
     } catch (e) {
       return false;
     }
   };
 
-  // Toggle selection for a post through a custom event
-  const togglePostSelection = (userId: string, postId: string) => {
+  // Toggle selection for a photo through a custom event
+  const togglePhotoSelection = (userId: string, postId: string, photoType: 'primary' | 'secondary') => {
     // Dispatch a custom event that the layout component can listen for
     window.dispatchEvent(new CustomEvent('togglePostSelection', {
-      detail: { userId, postId }
+      detail: { userId, postId, photoType }
     }));
   };
 
@@ -73,8 +76,9 @@ const FeedFriendsView: Component = () => {
                     <FeedFriendsOverview
                       overview={overview}
                       isSelectionMode={isInSelectionMode()}
-                      isSelected={isInSelectionMode() && isPostSelected(overview.user.id, overview.posts[0].id)}
-                      onSelectPost={togglePostSelection}
+                      isPrimarySelected={isInSelectionMode() && isPhotoSelected(overview.user.id, overview.posts[0].id, 'primary')}
+                      isSecondarySelected={isInSelectionMode() && isPhotoSelected(overview.user.id, overview.posts[0].id, 'secondary')}
+                      onSelectPhoto={(photoType) => togglePhotoSelection(overview.user.id, overview.posts[0].id, photoType)}
                     />
                   )}
                 </For>
