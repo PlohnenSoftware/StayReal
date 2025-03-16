@@ -3,16 +3,21 @@ import { createSignal, onMount, type FlowComponent } from "solid-js";
 import toast from "solid-toast";
 import { ProfileInexistentError } from "~/api/requests/person/me";
 import PullableScreen from "~/components/pullable-screen";
+import BatchDownload, { PostSelectionItem } from "~/components/batch-download";
 import feed from "~/stores/feed";
 import me from "~/stores/me";
 import moment from "~/stores/moment"
 import MdiRefresh from "~icons/mdi/refresh";
+import MdiDownload from '~icons/mdi/download';
+import MdiClose from '~icons/mdi/close';
 import { promptForPermissions } from "~/utils/permissions";
 import BottomNavigation from "~/components/bottom-navigation";
 
 const FeedLayout: FlowComponent = (props) => {
   const navigate = useNavigate();
   const [isRefreshing, setIsRefreshing] = createSignal(false);
+  const [isSelectionMode, setIsSelectionMode] = createSignal(false);
+  const [selectedPosts, setSelectedPosts] = createSignal<PostSelectionItem[]>([]);
 
   const handleRefresh = async () => {
     try {
@@ -43,6 +48,28 @@ const FeedLayout: FlowComponent = (props) => {
     }
   };
 
+  // Toggle selection mode
+  const toggleSelectionMode = () => {
+    setIsSelectionMode(prev => !prev);
+    
+    // Convert feed posts to selection items when selection mode is enabled
+    if (!isSelectionMode() && feed.get()?.friendsPosts) {
+      const items: PostSelectionItem[] = feed.get()!.friendsPosts!.flatMap(overview => {
+        return overview.posts.map(post => ({
+          user: {
+            id: overview.user.id,
+            username: overview.user.username
+          },
+          post,
+          selected: false
+        }));
+      });
+      setSelectedPosts(items);
+    } else {
+      setSelectedPosts([]);
+    }
+  };
+
   onMount(async () => {
     // Ask the user for notification permissions.
     await promptForPermissions();
@@ -66,21 +93,41 @@ const FeedLayout: FlowComponent = (props) => {
             Friends
           </p>
 
-          <button
-            type="button"
-            onClick={handleRefresh}
-            disabled={isRefreshing()}
-            title="Refresh feed & last moment"
-          >
-            <MdiRefresh
-              class="text-white text-2xl rounded-full p-1"
-              classList={{
-                "animate-spin text-white/50 bg-white/10": isRefreshing(),
-              }}
-            />
-          </button>
+          <div class="flex ml-auto items-center gap-2">
+            <button
+              type="button"
+              onClick={toggleSelectionMode}
+              class="bg-white/10 rounded-full p-1.5 transition-all duration-200 hover:bg-white/15"
+              title={isSelectionMode() ? "Cancel selection" : "Select photos for links"}
+            >
+              {isSelectionMode() ? <MdiClose class="text-xl" /> : <MdiDownload class="text-xl" />}
+            </button>
+            
+            <button
+              type="button"
+              onClick={handleRefresh}
+              disabled={isRefreshing()}
+              title="Refresh feed & last moment"
+              class="bg-white/10 rounded-full p-1.5 transition-all duration-200 hover:bg-white/15"
+            >
+              <MdiRefresh
+                class="text-white text-xl"
+                classList={{
+                  "animate-spin text-white/50": isRefreshing(),
+                }}
+              />
+            </button>
+          </div>
         </nav>
       </header>
+
+      {/* Batch Download Component */}
+      {isSelectionMode() && (
+        <BatchDownload
+          posts={selectedPosts}
+          onClose={() => setIsSelectionMode(false)}
+        />
+      )}
 
       <div class="pt-4 pb-32 mb-[env(safe-area-inset-bottom)]">
         <PullableScreen onRefresh={handleRefresh}>

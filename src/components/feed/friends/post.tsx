@@ -48,57 +48,61 @@ const FeedFriendsPost: Component<{
     if (event.type !== "pointermove") return false;
 
     delta += Math.abs((event as PointerEvent).movementX) + Math.abs((event as PointerEvent).movementY);
-    if (delta < 10) return true;
-    return false;
-  }
 
-  /**
-   * When we unfocus the image, we should show again
-   * the elements around the primary image.
-   *
-   * Concerning BTS videos, we should hide the video
-   * and reset it to the beginning.
-   */
-  const handleUnfocus = (event: Event): void => {
-    if (shouldSkipUnfocusAttempt(event)) return;
-
-    if (timer) clearTimeout(timer);
-    setIsFocusing(false);
-
-    const video = useVideo();
-    if (video) { // hide, pause and reset the video
-      video.classList.add("hidden");
-      video.pause();
-      video.currentTime = 0;
+    // If the user has moved the pointer enough, unfocus.
+    if (delta > 30) {
+      delta = 0;
+      return false;
     }
 
-    unfocusEvents.forEach(name => document.removeEventListener(name, handleUnfocus));
+    return true;
   };
 
   /**
-   * What happens when the user focuses (long presses) on the image.
-   *
-   * We should wait for a certain amount of time before hiding
-   * the elements around the primary image.
-   *
-   * Concerning BTS videos, we should show the video and play it.
+   * Event listener that's attached whenever the user clicks on the photo,
+   * to unfocus the photo when clicking outside.
    */
-  const handleFocus = (event: PointerEvent): void => {
-    // We ignore right-clicking.
-    if (event.pointerType === "mouse" && event.button !== 0) return;
+  const handleUnfocus = (event: Event): void => {
+    // Skip the unfocus attempt if the user has just
+    // moved the pointer a bit while holding the photo.
+    if (shouldSkipUnfocusAttempt(event)) return;
 
-    // If we're currently reacting, clicking on the focused image
-    // should remove the reaction bar.
-    if (isReacting()) {
-      setIsReacting(false);
-      return;
-    }
-
-    if (timer) clearTimeout(timer);
+    // Reset the delta.
     delta = 0;
 
-    unfocusEvents.forEach(name => document.addEventListener(name, handleUnfocus));
+    // Clear the focus timer.
+    if (timer) {
+      clearTimeout(timer);
+    }
 
+    window.removeEventListener("pointerup", handleUnfocus);
+    window.removeEventListener("pointercancel", handleUnfocus);
+    window.removeEventListener("pointermove", handleUnfocus);
+
+    setIsFocusing(false);
+
+    const video = useVideo();
+    if (video) {
+      video.pause();
+      video.currentTime = 0;
+      video.classList.add("hidden");
+    }
+  };
+
+  /**
+   * Event handler that's attached to the photo, to focus the photo
+   * when clicking on it.
+   */
+  const handleFocus = (event: PointerEvent): void => {
+    // We only want to handle focusing with pointer down.
+    if (event.type !== "pointerdown") return;
+
+    for (const event of unfocusEvents) {
+      window.addEventListener(event, handleUnfocus);
+    }
+
+    // We need to wait a bit before finally focusing the photo, because the user
+    // might be just starting to interact with it another way (like reversing).
     timer = setTimeout(() => {
       setIsFocusing(true);
 
@@ -108,13 +112,6 @@ const FeedFriendsPost: Component<{
         video.play();
       }
     }, 350);
-  };
-
-  // Check if we're in a parent component's selection mode
-  const isInSelectionMode = () => {
-    // Find the closest parent with the data-selection-mode attribute
-    const parent = document.querySelector('[data-selection-mode="true"]');
-    return !!parent;
   };
 
   createEffect(on(useImage, (image) => {
@@ -128,9 +125,6 @@ const FeedFriendsPost: Component<{
 
     const gesture = new Gesture(image, {
       onDrag: ({ delta: [dx, dy], pinching }) => {
-        // Skip drag handling in selection mode
-        if (isInSelectionMode()) return;
-        
         if (!pinching) return;
 
         transformX += dx;
@@ -138,13 +132,11 @@ const FeedFriendsPost: Component<{
         update();
       },
       onPinch: ({ first, origin: [ox, oy], movement: [ms], offset: [s], memo }) => {
-        // Skip pinch handling in selection mode
-        if (isInSelectionMode()) return;
-        
         if (first) {
-          const { width, height, x: boundX, y: boundY } = image.getBoundingClientRect();
-          const tx = ox - (boundX + width / 2)
-          const ty = oy - (boundY + height / 2)
+          const rect = image.getBoundingClientRect();
+          const tx = ox - rect.left - rect.width / 2;
+          const ty = oy - rect.top - rect.height / 2;
+          
           memo = [transformX, transformY, tx, ty]
         }
 
@@ -158,9 +150,6 @@ const FeedFriendsPost: Component<{
         return memo;
       },
       onPinchEnd: () => {
-        // Skip pinch end handling in selection mode
-        if (isInSelectionMode()) return;
-        
         scale = 1;
         transformY = 0;
         transformX = 0;
@@ -214,11 +203,7 @@ const FeedFriendsPost: Component<{
         class="max-h-80vh"
         alt="Primary image"
         src={primaryURL()}
-        onPointerDown={(e) => {
-          // Skip focus handling in selection mode
-          if (isInSelectionMode()) return;
-          handleFocus(e);
-        }}
+        onPointerDown={handleFocus}
       />
 
       <Show when={props.post.postType === "bts"}>
@@ -260,7 +245,7 @@ const FeedFriendsPost: Component<{
       <div class="w-fit">
         <div class="absolute z-30 bottom-2 right-4 transition-opacity"
           classList={{
-            "opacity-0 pointer-events-none": isFocusing() || isReacting() || isInSelectionMode()
+            "opacity-0 pointer-events-none": isFocusing() || isReacting()
           }}
         >
           <button type="button"

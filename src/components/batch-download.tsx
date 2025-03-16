@@ -1,7 +1,8 @@
 import { createSignal, For, Show, type Component, Accessor } from "solid-js";
-import { batchDownload } from "~/utils/download";
+import { batchDownload, copyLinksToClipboard } from "~/utils/download";
 import toast from "solid-toast";
 import MdiDownload from '~icons/mdi/download';
+import MdiContentCopy from '~icons/mdi/content-copy';
 import MdiClose from '~icons/mdi/close';
 import { Post } from "~/api/requests/feeds/friends";
 
@@ -22,6 +23,7 @@ const BatchDownload: Component<{
   onClose: () => void;
 }> = (props) => {
   const [isDownloading, setIsDownloading] = createSignal(false);
+  const [isCopying, setIsCopying] = createSignal(false);
   const [progress, setProgress] = createSignal<{ current: number; total: number } | null>(null);
 
   const selectedPosts = () => props.posts().filter(item => item.selected);
@@ -65,6 +67,32 @@ const BatchDownload: Component<{
     } finally {
       setIsDownloading(false);
       setProgress(null);
+    }
+  };
+
+  const handleCopyLinks = async () => {
+    const selected = selectedPosts();
+    
+    if (selected.length === 0) {
+      toast.error("No photos selected");
+      return;
+    }
+
+    setIsCopying(true);
+
+    try {
+      const urls = selected.flatMap(item => [
+        item.post.primary.url,
+        item.post.secondary.url
+      ]);
+
+      await copyLinksToClipboard(urls);
+      toast.success(`Copied ${urls.length} URLs to clipboard`);
+    } catch (error) {
+      console.error("[BatchDownload::handleCopyLinks]:", error);
+      toast.error(`Error copying links: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      setIsCopying(false);
     }
   };
 
@@ -124,6 +152,16 @@ const BatchDownload: Component<{
         >
           <MdiDownload />
           <span>{isDownloading() ? 'Downloading...' : 'Download Selected Photos'}</span>
+        </button>
+
+        <button
+          type="button"
+          disabled={isCopying() || selectedPosts().length === 0}
+          onClick={handleCopyLinks}
+          class="w-full rounded-lg bg-white/10 hover:bg-white/15 active:opacity-75 px-4 py-3 text-white font-medium transition-all duration-100 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <MdiContentCopy />
+          <span>{isCopying() ? 'Copying...' : 'Copy Selected Links'}</span>
         </button>
       </div>
     </div>

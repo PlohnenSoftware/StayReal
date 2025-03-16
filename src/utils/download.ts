@@ -55,4 +55,21 @@ export const batchDownload = async (
       // Continue with next file even if one fails
     }
   }
+};
+
+/**
+ * Copies multiple URLs to clipboard, each on a new line
+ * @param urls Array of URLs to copy
+ * @returns Promise that resolves when the operation is complete
+ */
+export const copyLinksToClipboard = async (
+  urls: string[]
+): Promise<void> => {
+  try {
+    const text = urls.join('\n');
+    await navigator.clipboard.writeText(text);
+  } catch (error) {
+    console.error('[download::copyLinksToClipboard]:', error);
+    throw new Error(`Failed to copy links to clipboard: ${error instanceof Error ? error.message : String(error)}`);
+  }
 }; 

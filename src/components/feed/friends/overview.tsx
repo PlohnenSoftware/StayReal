@@ -25,9 +25,6 @@ import MdiCheckboxBlankCircleOutline from '~icons/mdi/checkbox-blank-circle-outl
 
 const FeedFriendsOverview: Component<{
   overview: PostsOverview;
-  isSelectionMode?: boolean;
-  isSelected?: boolean;
-  onSelectPost?: (userId: string, postId: string) => void;
 }> = (props) => {
   const post = () => props.overview.posts[0];
   const postDate = () => new Date(post().postedAt);
@@ -74,13 +71,6 @@ const FeedFriendsOverview: Component<{
       });
     }
   }
-
-  // Handle post selection for batch download
-  const toggleSelection = () => {
-    if (props.onSelectPost) {
-      props.onSelectPost(props.overview.user.id, post().id);
-    }
-  };
 
   return (
     <>
@@ -249,20 +239,6 @@ const FeedFriendsOverview: Component<{
       </Drawer>
 
       <div class="relative">
-        {/* Selection Mode Checkbox */}
-        <Show when={props.isSelectionMode}>
-          <button 
-            type="button" 
-            onClick={toggleSelection} 
-            class="absolute top-2 left-2 z-40 bg-black/50 rounded-full p-1"
-          >
-            {props.isSelected ? 
-              <MdiCheckboxMarkedCircle class="text-2xl text-white" /> : 
-              <MdiCheckboxBlankCircleOutline class="text-2xl text-white/70" />
-            }
-          </button>
-        </Show>
-
         <div class="flex items-center gap-3 px-4 py-2.5 rounded-t-2xl">
           <ProfilePicture
             username={props.overview.user.username}
