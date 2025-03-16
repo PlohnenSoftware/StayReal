@@ -97,8 +97,9 @@ const BatchDownload: Component<{
   };
 
   return (
-    <div class="fixed bottom-20 left-0 right-0 z-50 flex justify-center px-4">
-      <div class="bg-black/90 border border-white/25 rounded-xl p-4 w-full max-w-md shadow-xl">
+    <div class="fixed bottom-20 left-0 right-0 z-50 flex justify-center px-4 batch-download-container">
+      <div class="bg-black/90 border border-white/25 rounded-xl p-4 w-full max-w-md shadow-xl"
+           data-selected-posts={JSON.stringify(props.posts())}>
         <div class="flex justify-between items-center mb-3">
           <h3 class="text-lg font-bold">Download Photos</h3>
           <button 

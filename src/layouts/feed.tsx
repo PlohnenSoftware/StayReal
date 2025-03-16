@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "@solidjs/router";
-import { createSignal, onMount, type FlowComponent } from "solid-js";
+import { createSignal, onMount, onCleanup, type FlowComponent } from "solid-js";
 import toast from "solid-toast";
 import { ProfileInexistentError } from "~/api/requests/person/me";
 import PullableScreen from "~/components/pullable-screen";
@@ -70,12 +70,33 @@ const FeedLayout: FlowComponent = (props) => {
     }
   };
 
-  onMount(async () => {
+  // Handle post selection from child components
+  const handlePostSelection = (event: CustomEvent) => {
+    const { userId, postId } = event.detail;
+    
+    setSelectedPosts(prev =>
+      prev.map(item =>
+        item.user.id === userId && item.post.id === postId
+          ? { ...item, selected: !item.selected }
+          : item
+      )
+    );
+  };
+
+  onMount(() => {
     // Ask the user for notification permissions.
-    await promptForPermissions();
+    promptForPermissions();
 
     // Automatically refresh whenever the user navigates to the feed.
-    await handleRefresh();
+    handleRefresh();
+
+    // Listen for post selection events
+    window.addEventListener('togglePostSelection', handlePostSelection as EventListener);
+  });
+
+  onCleanup(() => {
+    // Remove event listener when component is unmounted
+    window.removeEventListener('togglePostSelection', handlePostSelection as EventListener);
   });
 
   return (

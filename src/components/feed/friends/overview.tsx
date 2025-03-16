@@ -25,6 +25,9 @@ import MdiCheckboxBlankCircleOutline from '~icons/mdi/checkbox-blank-circle-outl
 
 const FeedFriendsOverview: Component<{
   overview: PostsOverview;
+  isSelectionMode?: boolean;
+  isSelected?: boolean;
+  onSelectPost?: (userId: string, postId: string) => void;
 }> = (props) => {
   const post = () => props.overview.posts[0];
   const postDate = () => new Date(post().postedAt);
@@ -45,6 +48,13 @@ const FeedFriendsOverview: Component<{
 
     await content_posts_comment(post().id, props.overview.user.id, content);
     await feed.refetch();
+  };
+
+  // Handle post selection for batch download
+  const toggleSelection = () => {
+    if (props.onSelectPost) {
+      props.onSelectPost(props.overview.user.id, post().id);
+    }
   };
 
   const [isActionsDrawerOpened, setActionsDrawerOpen] = createSignal(false);
@@ -291,7 +301,13 @@ const FeedFriendsOverview: Component<{
           </Show>
         </div>
 
-        <FeedFriendsPost post={post()} postUserId={props.overview.user.id} />
+        <FeedFriendsPost 
+          post={post()} 
+          postUserId={props.overview.user.id} 
+          isSelectionMode={props.isSelectionMode}
+          isSelected={props.isSelected}
+          onSelect={toggleSelection}
+        />
         
         <div class="px-6 pt-4 mb-2">
           <p class="text-left">

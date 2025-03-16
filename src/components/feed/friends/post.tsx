@@ -9,6 +9,8 @@ import ReactionBar from "../ReactionBar";
 import { Gesture } from "@use-gesture/vanilla";
 import toast from "solid-toast";
 import MingcuteEmojiFill from '~icons/mingcute/emoji-fill'
+import MdiCheckboxMarkedCircle from '~icons/mdi/checkbox-marked-circle';
+import MdiCheckboxBlankCircleOutline from '~icons/mdi/checkbox-blank-circle-outline';
 
 const FeedFriendsPost: Component<{
   post: Post
@@ -17,6 +19,21 @@ const FeedFriendsPost: Component<{
    * User ID of the post owner.
    */
   postUserId: string
+
+  /**
+   * Whether the post is in selection mode
+   */
+  isSelectionMode?: boolean
+
+  /**
+   * Whether the post is selected
+   */
+  isSelected?: boolean
+
+  /**
+   * Callback when the post is selected
+   */
+  onSelect?: () => void
 }> = (props) => {
   const [useVideo, setVideo] = createSignal<HTMLVideoElement>();
   const [useImage, setImage] = createSignal<HTMLImageElement>();
@@ -94,6 +111,14 @@ const FeedFriendsPost: Component<{
    * when clicking on it.
    */
   const handleFocus = (event: PointerEvent): void => {
+    // If we're in selection mode, clicking should select instead of focus
+    if (props.isSelectionMode) {
+      if (props.onSelect) {
+        props.onSelect();
+      }
+      return;
+    }
+    
     // We only want to handle focusing with pointer down.
     if (event.type !== "pointerdown") return;
 
@@ -189,6 +214,20 @@ const FeedFriendsPost: Component<{
 
   return (
     <div class="z-20 relative mx-auto w-fit overflow-hidden">
+      {/* Selection Mode Checkbox */}
+      <Show when={props.isSelectionMode}>
+        <button 
+          type="button" 
+          onClick={() => props.onSelect && props.onSelect()} 
+          class="absolute top-2 left-2 z-40 bg-black/50 rounded-full p-1"
+        >
+          {props.isSelected ? 
+            <MdiCheckboxMarkedCircle class="text-2xl text-white" /> : 
+            <MdiCheckboxBlankCircleOutline class="text-2xl text-white/70" />
+          }
+        </button>
+      </Show>
+
       <img
         class="z-30 h-40 w-auto absolute top-4 right-4 rounded-xl inline-block border border-white/25 shadow-xl transition-opacity"
         onClick={() => setIsReversed(prev => !prev)}
