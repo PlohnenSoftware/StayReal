@@ -221,50 +221,73 @@ const FeedFriendsPost: Component<{
 
   return (
     <div class="z-20 relative mx-auto w-fit overflow-hidden">
-      {/* Selection Mode Checkboxes */}
-      <Show when={props.isSelectionMode}>
-        {/* Primary photo selector */}
-        <button 
-          type="button" 
-          onClick={() => props.onSelectPrimary && props.onSelectPrimary()} 
-          class="absolute top-2 left-2 z-40 bg-black/50 rounded-full p-1 flex items-center gap-1"
-        >
-          {props.isPrimarySelected ? 
-            <MdiCheckboxMarkedCircle class="text-2xl text-white" /> : 
-            <MdiCheckboxBlankCircleOutline class="text-2xl text-white/70" />
-          }
-          <span class="h-3 w-3 rounded-full bg-green-500"></span>
-        </button>
-        
-        {/* Secondary photo selector */}
-        <button 
-          type="button" 
-          onClick={() => props.onSelectSecondary && props.onSelectSecondary()} 
-          class="absolute top-2 right-2 z-40 bg-black/50 rounded-full p-1 flex items-center gap-1"
-        >
-          <span class="h-3 w-3 rounded-full bg-red-500"></span>
-          {props.isSecondarySelected ? 
-            <MdiCheckboxMarkedCircle class="text-2xl text-white" /> : 
-            <MdiCheckboxBlankCircleOutline class="text-2xl text-white/70" />
-          }
-        </button>
-      </Show>
+      {/* Labels for primary and secondary photos */}
+      <div class="absolute top-10 left-4 z-50 bg-black/60 px-2 py-1 rounded-full flex items-center gap-1.5 pointer-events-none">
+        <span class="h-4 w-4 rounded-full bg-green-500"></span>
+        <span class="text-xs text-white font-medium">Primary</span>
+      </div>
+      
+      <div class="absolute top-10 right-4 z-50 bg-black/60 px-2 py-1 rounded-full flex items-center gap-1.5 pointer-events-none">
+        <span class="text-xs text-white font-medium">Secondary</span>
+        <span class="h-4 w-4 rounded-full bg-red-500"></span>
+      </div>
+      
+      {/* Selection Mode Checkboxes - Always rendered but visibility controlled by CSS */}
+      <button 
+        type="button" 
+        onClick={() => props.onSelectPrimary && props.onSelectPrimary()} 
+        class="absolute top-2 left-2 z-50 bg-black/70 backdrop-blur-sm rounded-full p-1.5 flex items-center gap-1.5 transition-opacity border border-white/20"
+        classList={{
+          "opacity-100": props.isSelectionMode,
+          "opacity-0 pointer-events-none": !props.isSelectionMode
+        }}
+      >
+        {props.isPrimarySelected ? 
+          <MdiCheckboxMarkedCircle class="text-2xl text-white" /> : 
+          <MdiCheckboxBlankCircleOutline class="text-2xl text-white/70" />
+        }
+        <span class="h-4 w-4 rounded-full bg-green-500"></span>
+      </button>
+      
+      {/* Secondary photo selector */}
+      <button 
+        type="button" 
+        onClick={() => props.onSelectSecondary && props.onSelectSecondary()} 
+        class="absolute top-2 right-2 z-50 bg-black/70 backdrop-blur-sm rounded-full p-1.5 flex items-center gap-1.5 transition-opacity border border-white/20"
+        classList={{
+          "opacity-100": props.isSelectionMode,
+          "opacity-0 pointer-events-none": !props.isSelectionMode
+        }}
+      >
+        <span class="h-4 w-4 rounded-full bg-red-500"></span>
+        {props.isSecondarySelected ? 
+          <MdiCheckboxMarkedCircle class="text-2xl text-white" /> : 
+          <MdiCheckboxBlankCircleOutline class="text-2xl text-white/70" />
+        }
+      </button>
 
       <img
-        class="z-30 h-40 w-auto absolute top-4 right-4 rounded-xl inline-block border border-white/25 shadow-xl transition-opacity"
-        onClick={() => setIsReversed(prev => !prev)}
+        class="z-30 h-40 w-auto absolute top-4 right-4 rounded-xl inline-block border border-white/25 shadow-xl transition-opacity border border-red-500/50"
+        onClick={() => props.isSelectionMode ? props.onSelectSecondary && props.onSelectSecondary() : setIsReversed(prev => !prev)}
         alt="Secondary image"
         src={secondaryURL()}
         classList={{
-          "opacity-0 pointer-events-none": isFocusing()
+          "opacity-0 pointer-events-none": isFocusing(),
+          "border-2 border-red-500": props.isSecondarySelected && props.isSelectionMode,
+          "border border-red-500/50": !props.isSecondarySelected && props.isSelectionMode,
+          "border border-white/25": !props.isSelectionMode
         }}
       />
 
       <img ref={setImage}
         class="max-h-80vh"
+        classList={{
+          "border-2 border-green-500": props.isPrimarySelected && props.isSelectionMode,
+          "border border-green-500/50": !props.isPrimarySelected && props.isSelectionMode
+        }}
         alt="Primary image"
         src={primaryURL()}
-        onPointerDown={handleFocus}
+        onClick={(e) => props.isSelectionMode ? props.onSelectPrimary && props.onSelectPrimary() : handleFocus(e as any)}
       />
 
       <Show when={props.post.postType === "bts"}>

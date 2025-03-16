@@ -4,16 +4,35 @@ import feed from "~/stores/feed";
 import { PostSelectionItem } from "~/components/batch-download";
 
 const FeedFriendsView: Component = () => {
+  // Track selection mode state locally to ensure it's consistent
+  const [isSelecting, setIsSelecting] = createSignal(false);
+  
+  // Update local selection state when the global selection state changes
+  createEffect(() => {
+    const isGlobalSelectionModeOn = document.querySelector('[data-selection-mode="true"]') !== null;
+    setIsSelecting(isGlobalSelectionModeOn);
+    
+    // Set up a mutation observer to detect changes to selection mode
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'data-selection-mode') {
+          setIsSelecting(document.querySelector('[data-selection-mode="true"]') !== null);
+        }
+      }
+    });
+    
+    const selectionContainer = document.querySelector('[data-selection-mode]');
+    if (selectionContainer) {
+      observer.observe(selectionContainer, { attributes: true });
+    }
+    
+    return () => observer.disconnect();
+  });
+
   // Logujemy cały feed przy każdej zmianie
   createEffect(() => {
     console.log("Cały feed:", feed.get());
   });
-
-  // Check if we're in a parent component's selection mode
-  const isInSelectionMode = () => {
-    // Look for the data-selection-mode attribute on parent elements
-    return document.querySelector('[data-selection-mode="true"]') !== null;
-  };
 
   // Check if a photo is selected
   const isPhotoSelected = (userId: string, postId: string, photoType: 'primary' | 'secondary') => {
@@ -75,9 +94,9 @@ const FeedFriendsView: Component = () => {
                   {(overview) => (
                     <FeedFriendsOverview
                       overview={overview}
-                      isSelectionMode={isInSelectionMode()}
-                      isPrimarySelected={isInSelectionMode() && isPhotoSelected(overview.user.id, overview.posts[0].id, 'primary')}
-                      isSecondarySelected={isInSelectionMode() && isPhotoSelected(overview.user.id, overview.posts[0].id, 'secondary')}
+                      isSelectionMode={isSelecting()}
+                      isPrimarySelected={isSelecting() && isPhotoSelected(overview.user.id, overview.posts[0].id, 'primary')}
+                      isSecondarySelected={isSelecting() && isPhotoSelected(overview.user.id, overview.posts[0].id, 'secondary')}
                       onSelectPhoto={(photoType) => togglePhotoSelection(overview.user.id, overview.posts[0].id, photoType)}
                     />
                   )}

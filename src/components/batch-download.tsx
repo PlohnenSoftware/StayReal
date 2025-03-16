@@ -121,11 +121,17 @@ const BatchDownload: Component<{
   };
 
   return (
-    <div class="fixed bottom-20 left-0 right-0 z-50 flex justify-center px-4 batch-download-container">
-      <div class="bg-black/90 border border-white/25 rounded-xl p-4 w-full max-w-md shadow-xl"
+    <div class="fixed bottom-0 left-0 right-0 z-[100] flex justify-center px-4 batch-download-container">
+      <div class="bg-black/95 border-t border-l border-r border-white/25 rounded-t-xl p-4 w-full max-w-md shadow-xl backdrop-blur-md"
            data-selected-posts={JSON.stringify(props.posts())}>
         <div class="flex justify-between items-center mb-3">
-          <h3 class="text-lg font-bold">Download Photos</h3>
+          <h3 class="text-lg font-bold flex items-center gap-2">
+            <div class="flex -space-x-1">
+              <span class="h-4 w-4 rounded-full bg-green-500 border border-black"></span>
+              <span class="h-4 w-4 rounded-full bg-red-500 border border-black"></span>
+            </div>
+            Download Photos
+          </h3>
           <button 
             type="button" 
             onClick={props.onClose}
@@ -141,16 +147,28 @@ const BatchDownload: Component<{
             Selected: <strong>{selectedPosts().length}</strong> posts 
             (<strong>{totalSelectedPhotos()}</strong> photos)
           </p>
+          <div class="flex items-center mt-1 gap-2 text-xs text-white/60">
+            <div class="flex items-center gap-1">
+              <span class="h-3 w-3 rounded-full bg-green-500"></span>
+              <span>Primary Photos: {props.posts().reduce((count, item) => count + (item.primarySelected ? 1 : 0), 0)}</span>
+            </div>
+            <div class="flex items-center gap-1">
+              <span class="h-3 w-3 rounded-full bg-red-500"></span>
+              <span>Secondary Photos: {props.posts().reduce((count, item) => count + (item.secondarySelected ? 1 : 0), 0)}</span>
+            </div>
+          </div>
         </div>
         
         <Show when={selectedPosts().length > 0}>
           <div class="max-h-32 overflow-y-auto mb-4 rounded bg-white/5 p-2">
             <For each={selectedPosts()}>
               {item => (
-                <div class="text-sm text-white/75 mb-1">
-                  {item.user.username}'s post ({new Date(item.post.postedAt).toLocaleDateString()})
-                  {item.primarySelected && <span class="inline-block w-2 h-2 ml-1 rounded-full bg-green-500"></span>}
-                  {item.secondarySelected && <span class="inline-block w-2 h-2 ml-1 rounded-full bg-red-500"></span>}
+                <div class="text-sm text-white/75 mb-1 flex items-center">
+                  <span class="truncate flex-1">{item.user.username}'s post</span>
+                  <div class="flex items-center">
+                    {item.primarySelected && <span class="inline-block w-3 h-3 ml-1 rounded-full bg-green-500"></span>}
+                    {item.secondarySelected && <span class="inline-block w-3 h-3 ml-1 rounded-full bg-red-500"></span>}
+                  </div>
                 </div>
               )}
             </For>

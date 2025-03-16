@@ -12,6 +12,7 @@ import MdiDownload from '~icons/mdi/download';
 import MdiClose from '~icons/mdi/close';
 import { promptForPermissions } from "~/utils/permissions";
 import BottomNavigation from "~/components/bottom-navigation";
+import { Show } from "solid-js";
 
 const FeedLayout: FlowComponent = (props) => {
   const navigate = useNavigate();
@@ -54,6 +55,7 @@ const FeedLayout: FlowComponent = (props) => {
     
     // Convert feed posts to selection items when selection mode is enabled
     if (!isSelectionMode() && feed.get()?.friendsPosts) {
+      // Set up selection items
       const items: PostSelectionItem[] = feed.get()!.friendsPosts!.flatMap(overview => {
         return overview.posts.map(post => ({
           user: {
@@ -66,8 +68,18 @@ const FeedLayout: FlowComponent = (props) => {
         }));
       });
       setSelectedPosts(items);
+      
+      // Emit a custom event to notify components that selection mode has changed
+      window.dispatchEvent(new CustomEvent('selectionModeChanged', { 
+        detail: { isActive: true }
+      }));
     } else {
       setSelectedPosts([]);
+      
+      // Emit a custom event to notify components that selection mode has changed
+      window.dispatchEvent(new CustomEvent('selectionModeChanged', { 
+        detail: { isActive: false }
+      }));
     }
   };
 
@@ -124,10 +136,20 @@ const FeedLayout: FlowComponent = (props) => {
             <button
               type="button"
               onClick={toggleSelectionMode}
-              class="bg-white/10 rounded-full p-1.5 transition-all duration-200 hover:bg-white/15"
+              class="bg-white/10 rounded-full p-1.5 transition-all duration-200 hover:bg-white/15 relative"
+              classList={{
+                "bg-green-500/20 hover:bg-green-500/30": isSelectionMode(),
+              }}
               title={isSelectionMode() ? "Cancel selection" : "Select photos for links"}
             >
               {isSelectionMode() ? <MdiClose class="text-xl" /> : <MdiDownload class="text-xl" />}
+              
+              {/* Selection indicator */}
+              <Show when={isSelectionMode() && totalSelectedPhotos() > 0}>
+                <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  {totalSelectedPhotos()}
+                </span>
+              </Show>
             </button>
             
             <button
@@ -149,12 +171,16 @@ const FeedLayout: FlowComponent = (props) => {
       </header>
 
       {/* Set a data attribute for child components to detect selection mode */}
-      <div data-selection-mode={isSelectionMode() ? "true" : "false"}>
+      <div 
+        data-selection-mode={isSelectionMode() ? "true" : "false"}
+        data-selection-count={totalSelectedPhotos()}
+        class="min-h-[calc(100vh-72px)]"
+      >
         {/* Batch Download Component */}
         {isSelectionMode() && (
           <BatchDownload
             posts={selectedPosts}
-            onClose={() => setIsSelectionMode(false)}
+            onClose={() => toggleSelectionMode()}
           />
         )}
 
@@ -171,5 +197,22 @@ const FeedLayout: FlowComponent = (props) => {
     </>
   )
 };
+
+// Helper function to count total selected photos
+function totalSelectedPhotos(): number {
+  const selectedPostsElement = document.querySelector('.batch-download-container [data-selected-posts]');
+  if (!selectedPostsElement) return 0;
+  
+  try {
+    const selectedPosts = JSON.parse(selectedPostsElement.getAttribute('data-selected-posts') || '[]') as PostSelectionItem[];
+    return selectedPosts.reduce((count, item) => {
+      if (item.primarySelected) count++;
+      if (item.secondarySelected) count++;
+      return count;
+    }, 0);
+  } catch (e) {
+    return 0;
+  }
+}
 
 export default FeedLayout;
